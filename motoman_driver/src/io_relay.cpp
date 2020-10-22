@@ -97,11 +97,16 @@ bool MotomanIORelay::readSingleIoCB(
 
   if (!result)
   {
-    ROS_ERROR_NAMED("read", "Reading IO element %d failed", req.address);
+    res.success = false;
+    res.message = "Reading IO element " + std::to_string(req.address) + " failed";
+    ROS_ERROR_NAMED("read", res.message.c_str());
     return false;
   }
+
   res.value = io_val;
-  ROS_DEBUG_NAMED("read", "Element %d value: %d", req.address, io_val);
+  res.success = true;
+  res.message = "Element " + std::to_string(req.address) + " value: " + std::to_string(io_val);
+  ROS_DEBUG_NAMED("read", res.message.c_str());
 
   return true;
 }
@@ -121,10 +126,15 @@ bool MotomanIORelay::writeSingleIoCB(
 
   if (!result)
   {
-    ROS_ERROR_NAMED("write", "Writing IO element %d failed", req.address);
+    res.success = false;
+    res.message = "Writing to IO element " + std::to_string(req.address) + " failed";
+    ROS_ERROR_NAMED("write",  res.message.c_str());
     return false;
   }
-  ROS_DEBUG_NAMED("write", "Element %d set to: %d", req.address, req.value);
+
+  res.success = true;
+  res.message = "Element " + std::to_string(req.address) + " set to: " + std::to_string(req.value);
+  ROS_DEBUG_NAMED("write", res.message.c_str());
 
   return true;
 }
