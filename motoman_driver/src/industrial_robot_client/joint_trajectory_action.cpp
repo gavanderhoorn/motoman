@@ -433,7 +433,7 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh)
   // all ok, we've accepted the goal
   gh.setAccepted();
 
-  // ROS_INFO_STREAM("\n\n\nmsg: " << dyn_traj << "\n\n\n");
+  ROS_INFO_STREAM("\n\n\nmsg: " << dyn_traj << "\n\n\n");
 
   // pass the trajectory to the trajectory streamer
   this->pub_trajectory_command_.publish(dyn_traj);
