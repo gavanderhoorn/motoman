@@ -221,6 +221,239 @@ void JointTrajectoryAction::watchdog(const ros::TimerEvent &e, int group_number)
   }
 }
 
+void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh)
+{
+  // TODO: cancel current goal if one is active
+
+  const trajectory_msgs::JointTrajectory& ros_jtraj = gh.getGoal()->trajectory;
+  motoman_msgs::DynamicJointTrajectory dyn_traj;
+
+  if (ros_jtraj.points.empty())
+  {
+    ROS_ERROR("Joint trajectory action failed on empty trajectory");
+    control_msgs::FollowJointTrajectoryResult rslt;
+    rslt.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_GOAL;
+    gh.setRejected(rslt, "Empty trajectory");
+    return;
+  }
+
+  // NOTE: if user sends goal to the root action server, the trajectory MUST
+  //       contain data for ALL joints of the robot. Partial goals are NOT
+  //       supported here.
+  if (!industrial_utils::isSimilar(all_joint_names_, ros_jtraj.joint_names))
+  {
+    const auto msg_detail = "partial goals not supported on root action server";
+    ROS_ERROR_STREAM("Joint trajectory action failing on invalid joints: " << msg_detail);
+    control_msgs::FollowJointTrajectoryResult rslt;
+    rslt.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+    gh.setRejected(rslt, std::string("Joint names do not match: ") + msg_detail);
+    return;
+  }
+
+  ROS_INFO_STREAM("Accepted goal traj. Length: " << ros_jtraj.points.size());
+
+  // loop over the incoming JointTrajectory and convert it to a
+  // DynamicJointTrajectory msg.
+  //
+  // As a ROS JointTrajectory does not support a 'joint group' concept, this
+  // loop mixes and matches data in the ROS JointTrajectory with the groups
+  // as defined on the parameter server.
+  //
+  // NOTE: we do NOT check for 'active' groups, as we've already checked that
+  //       the incoming goal has data for all joints across all groups. If it
+  //       didn't, the goal would have been rejected earlier and we'd never
+  //       make it here.
+  //
+  // NOTE2: MotoROS does not require us to send data for 'non-existent' motion
+  //        groups. In other words: if the Yaskawa controller is configured
+  //        with only two groups, we only add two DynamicJointsGroup instances
+  //        to the DynamicJointPoint for the JointTrajectoryPoint we're
+  //        converting.
+  //
+  // NOTE3: the most inner loop below iterates over the Yaskawa-controller-side
+  //        joint names per group, then maps each name to the index into the
+  //        JointTrajPt arrays. This must work, as, as mentioned earlier, this
+  //        goal callback does not accept partial goals.
+  //
+  //
+  // pseudo code:
+  //
+  //  dyn_traj = []
+  //
+  //  for pt in ros_traj:
+  //    dyn_pt = []
+  //
+  //    for grp in groups:
+  //      dyn_grp.time_from_start = ros_traj.time_from_start
+  //      dyn_grp.grp_nr = grp.id
+  //      dyn_grp.num_joints = grp.num_joints
+  //
+  //      # note: joint_idx is index in the arrays used by the Yaskawa controller
+  //      for joint_idx in [0..grp.get_num_joints()]:
+  //        grp_jname = grp.jnames[joint_idx]
+  //        ros_joint_idx = map_grp_jname_to_jtrajpt_idx(grp_jname)
+  //        dyn_grp.pos[joint_idx] = ros_traj.pos[ros_joint_idx]
+  //        dyn_grp.vel[joint_idx] = ros_traj.vel[ros_joint_idx]
+  //        dyn_grp.acc[joint_idx] = ros_traj.acc[ros_joint_idx]
+  //        dyn_grp.eff[joint_idx] = ros_traj.eff[ros_joint_idx]
+  //
+  //      dyn_pt.add(dyn_grp)
+  //    dyn_traj.add(dyn_pt)
+  //
+  for (std::size_t i = 0; i < ros_jtraj.points.size(); ++i)
+  {
+    const trajectory_msgs::JointTrajectoryPoint& jtraj_pt = ros_jtraj.points[i];
+    motoman_msgs::DynamicJointPoint dyn_joint_pt;
+
+    ROS_INFO_STREAM("Converting pt " << i << " for " << robot_groups_.size() << " groups");
+
+    for (std::size_t rbt_idx = 0; rbt_idx < robot_groups_.size(); ++rbt_idx)
+    {
+      motoman_msgs::DynamicJointsGroup dyn_group;
+
+      // retrieve group info structure from map (robot_groups_)
+      const auto& robot_group = robot_groups_[rbt_idx];
+      const auto num_joints = robot_group.get_num_joints();
+
+      ROS_INFO_STREAM("Converting group " << robot_group.get_group_id() << " at idx " << rbt_idx << " with " << num_joints << " joints.");
+
+      // prealloc vector so we can use simple indexing later when copying. But
+      // only do that if there is actually data we need to convert.
+      if (!jtraj_pt.positions.empty())
+        dyn_group.positions.resize(num_joints, 0.0);
+      if (!jtraj_pt.velocities.empty())
+        dyn_group.velocities.resize(num_joints, 0.0);
+      if (!jtraj_pt.velocities.empty())
+        dyn_group.accelerations.resize(num_joints, 0.0);
+      if (!jtraj_pt.effort.empty())
+        dyn_group.effort.resize(num_joints, 0.0);
+
+      // iterating over all joints, copy the values for position, velocity,
+      // acceleration and effort to their correct place in the arrays in the
+      // DynamicJointsGroup instance being constructed.
+      for (std::size_t ctrlr_idx = 0; ctrlr_idx < num_joints; ++ctrlr_idx)
+      {
+        // get hold of the jointname corresponding to the index we're processing,
+        // as defined by the motoman_driver configuration (ie: the index of the
+        // joint in the arrays used by the Yaskawa controller)
+        const auto& joint_name = robot_group.get_joint_name(ctrlr_idx);
+
+        // find the index of the /name/ of joint[j] in the joint names of the
+        // group we're currently processing
+        const auto res = std::find(ros_jtraj.joint_names.begin(), ros_jtraj.joint_names.end(), joint_name);
+
+        // make sure we found it, if we didn't, error out
+        if (res == ros_jtraj.joint_names.end())
+        {
+          // NOTE: we can error out here, as earlier we checked whether the goal
+          //       trajectory contained data for all joints across all groups.
+          //       If we now suddenly cannot find a joint in the JointTrajectory,
+          //       something is wrong and we cannot continue.
+          ROS_ERROR("Joint trajectory action failing on invalid joints: cannot find '%s' in goal trajectory", joint_name.c_str());
+          control_msgs::FollowJointTrajectoryResult rslt;
+          rslt.error_code = control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+          gh.setRejected(rslt, "Joint names do not match");
+          return;
+        }
+        // name found, so calculate index in jointnames vector
+        const auto ros_idx = std::distance(ros_jtraj.joint_names.begin(), res);
+        ROS_INFO_STREAM("Found '" << joint_name << "' at index " << ros_idx);
+
+        // copy position for this joint
+        if (!jtraj_pt.positions.empty())
+        {
+          // this is possible, as we've previously resize(..)d positions
+          dyn_group.positions[ctrlr_idx] = jtraj_pt.positions[ros_idx];
+        }
+
+        // copy velocity for this joint
+        if (!jtraj_pt.velocities.empty())
+        {
+          // this is possible, as we've previously resize(..)d velocities
+          dyn_group.velocities[ctrlr_idx] = jtraj_pt.velocities[ros_idx];
+        }
+
+        // copy acceleration for this joint
+        if (!jtraj_pt.accelerations.empty())
+        {
+          // this is possible, as we've previously resize(..)d accelerations
+          dyn_group.accelerations[ctrlr_idx] = jtraj_pt.accelerations[ros_idx];
+        }
+
+        // copy effort for this joint
+        if (!jtraj_pt.effort.empty())
+        {
+          // this is possible, as we've previously resize(..)d effort
+          dyn_group.effort[ctrlr_idx] = jtraj_pt.effort[ros_idx];
+        }
+      }
+
+      // copy the rest of the fields at the group level
+      dyn_group.time_from_start = jtraj_pt.time_from_start;
+      dyn_group.group_number = robot_group.get_group_id();
+      dyn_group.num_joints = num_joints;
+
+      ROS_INFO_STREAM("DynGrp: time_from_start: " << dyn_group.time_from_start
+        << "; group_number: " << dyn_group.group_number << "; num_joints: "
+        << dyn_group.num_joints);
+
+      // add the DynamicJointsGroup to the DynamicJointPoint we're converting
+      dyn_joint_pt.groups.push_back(dyn_group);
+    }
+
+    dyn_joint_pt.num_groups = dyn_joint_pt.groups.size();
+    // add the DynamicJointPoint we just converted to the DynamicJointTrajectory
+    dyn_traj.points.push_back(dyn_joint_pt);
+  }
+
+  ROS_INFO_STREAM("Converted all points");
+
+  // setup the rest of the fields at the trajectory level
+  dyn_traj.header = ros_jtraj.header;
+  // no partial goals supported, so all these joints should be present
+  dyn_traj.joint_names = all_joint_names_;
+  // TODO(gavanderhoorn): old code did this, but why override timestamp if we're tranforming a msg (almost) 1-to-1?
+  //dyn_traj.header.stamp = ros::Time::now();
+
+  // register the new goal for all involved groups
+  for (std::size_t grp_idx = 0; grp_idx < robot_groups_.size(); ++grp_idx)
+  {
+    const auto grp_id = robot_groups_[grp_idx].get_group_id();
+    multi_group_active_goals_map_[grp_id] = true;
+    // TODO(gavanderhoorn): should we also update these two in the root-level server?
+    // active_goal_map_[grp_id] = gh;
+    // current_traj_map_[grp_id] = ros_jtraj;
+  }
+
+  // register root-level active goal
+  active_goal_ = gh;
+  current_traj_ = ros_jtraj;
+  has_active_goal_ = true;
+
+  // all ok, we've accepted the goal
+  gh.setAccepted();
+
+  // ROS_INFO_STREAM("\n\n\nmsg: " << dyn_traj << "\n\n\n");
+
+  // pass the trajectory to the trajectory streamer
+  this->pub_trajectory_command_.publish(dyn_traj);
+
+  // Adding some informational log messages to indicate unsupported goal constraints
+  if (gh.getGoal()->goal_time_tolerance.toSec() > 0.0)
+  {
+    ROS_WARN_STREAM("Ignoring goal time tolerance in action goal, may be supported in the future");
+  }
+  if (!gh.getGoal()->goal_tolerance.empty())
+  {
+    ROS_WARN_STREAM(
+      "Ignoring goal tolerance in action, using paramater tolerance of " << goal_threshold_ << " instead");
+  }
+  if (!gh.getGoal()->path_tolerance.empty())
+  {
+    ROS_WARN_STREAM("Ignoring goal path tolerance, option not supported by ROS-Industrial drivers");
+  }
+}
+
 void JointTrajectoryAction::cancelCB(JointTractoryActionServer::GoalHandle gh)
 {
   ROS_DEBUG("Received action cancel request");
