@@ -42,22 +42,32 @@ class RobotGroup
 public:
   RobotGroup() {};
 
-  std::vector<std::string> get_joint_names()
+  std::vector<std::string> get_joint_names() const
   {
     return this->joint_names_;
   }
 
-  std::string get_name()
+  const std::string& get_name() const
   {
     return this->name_;
   }
 
-  std::string get_ns()
+  const std::string& get_joint_name(std::size_t idx) const
+  {
+    return this->joint_names_[idx];
+  }
+
+  std::string get_ns() const
   {
     return this->ns_;
   }
 
-  int get_group_id()
+  std::size_t get_num_joints() const
+  {
+    return this->joint_names_.size();
+  }
+
+  int get_group_id() const
   {
     return this->group_id_;
   }
