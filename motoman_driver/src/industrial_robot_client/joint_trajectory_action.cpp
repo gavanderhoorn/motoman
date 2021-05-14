@@ -422,6 +422,7 @@ void JointTrajectoryAction::cancelCB(JointTractoryActionServer::GoalHandle gh)
     {
       const auto grp_id = robot_groups_[group_number].get_group_id();
       multi_group_active_goals_map_[grp_id] = false;
+      // TODO(gavanderhoorn): should this also update has_active_goal_map_?
     }
   }
   else
@@ -434,6 +435,10 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh, int
 {
   // NOTE: group_number is the ID of the group here, not necessarily the index in
   // the various maps (see the ctor where the maps are created)
+
+  // TODO(gavanderhoorn): check whether root-level action server has an active goal
+  //                      and cancel it if needed. This should cancel the goal for
+  //                      ALL groups.
 
   if (!gh.getGoal()->trajectory.points.empty())
   {
@@ -481,6 +486,7 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh, int
             dyn_group.positions = positions;
           }
           else
+            // TODO(gavanderhoorn): does this assume ROS_joint_order == ctrlr_joint_order ?
             dyn_group.positions = gh.getGoal()->trajectory.points[i].positions;
 
           if (gh.getGoal()->trajectory.points[i].velocities.empty())
@@ -489,6 +495,7 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh, int
             dyn_group.velocities = velocities;
           }
           else
+            // TODO(gavanderhoorn): does this assume ROS_joint_order == ctrlr_joint_order ?
             dyn_group.velocities = gh.getGoal()->trajectory.points[i].velocities;
           if (gh.getGoal()->trajectory.points[i].accelerations.empty())
           {
@@ -496,6 +503,7 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh, int
             dyn_group.accelerations = accelerations;
           }
           else
+            // TODO(gavanderhoorn): does this assume ROS_joint_order == ctrlr_joint_order ?
             dyn_group.accelerations = gh.getGoal()->trajectory.points[i].accelerations;
           if (gh.getGoal()->trajectory.points[i].effort.empty())
           {
@@ -503,6 +511,7 @@ void JointTrajectoryAction::goalCB(JointTractoryActionServer::GoalHandle gh, int
             dyn_group.effort = effort;
           }
           else
+            // TODO(gavanderhoorn): does this assume ROS_joint_order == ctrlr_joint_order ?
             dyn_group.effort = gh.getGoal()->trajectory.points[i].effort;
           dyn_group.time_from_start = gh.getGoal()->trajectory.points[i].time_from_start;
           dyn_group.group_number = group_number;
