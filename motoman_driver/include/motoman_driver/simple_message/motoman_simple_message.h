@@ -32,11 +32,11 @@
 #ifndef MOTOMAN_DRIVER_SIMPLE_MESSAGE_MOTOMAN_SIMPLE_MESSAGE_H
 #define MOTOMAN_DRIVER_SIMPLE_MESSAGE_MOTOMAN_SIMPLE_MESSAGE_H
 
-#ifdef ROS
+#ifdef SIMPLE_MESSAGE_USE_ROS
 #include "simple_message/simple_message.h"
 #endif
 
-#ifdef MOTOPLUS
+#ifdef SIMPLE_MESSAGE_MOTOPLUSESSAGE_MOTOPLUS
 #include "simple_message.h"  // NOLINT(build/include)
 #endif
 

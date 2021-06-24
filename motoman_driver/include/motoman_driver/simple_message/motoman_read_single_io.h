@@ -34,13 +34,13 @@
 #ifndef MOTOMAN_DRIVER_SIMPLE_MESSAGE_MOTOMAN_READ_SINGLE_IO_H
 #define MOTOMAN_DRIVER_SIMPLE_MESSAGE_MOTOMAN_READ_SINGLE_IO_H
 
-#ifdef ROS
+#ifdef SIMPLE_MESSAGE_USE_ROS
 #include "simple_message/simple_serialize.h"
 #include "simple_message/shared_types.h"
 #include "simple_message/log_wrapper.h"
 #endif
 
-#ifdef MOTOPLUS
+#ifdef SIMPLE_MESSAGE_MOTOPLUS
 #include "simple_serialize.h"  // NOLINT(build/include)
 #include "shared_types.h"      // NOLINT(build/include)
 #include "log_wrapper.h"       // NOLINT(build/include)

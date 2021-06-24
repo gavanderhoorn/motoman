@@ -34,7 +34,7 @@
 #ifndef MOTOMAN_DRIVER_SIMPLE_MESSAGE_MESSAGES_MOTOMAN_READ_SINGLE_IO_REPLY_MESSAGE_H
 #define MOTOMAN_DRIVER_SIMPLE_MESSAGE_MESSAGES_MOTOMAN_READ_SINGLE_IO_REPLY_MESSAGE_H
 
-#ifdef ROS
+#ifdef SIMPLE_MESSAGE_USE_ROS
 #include "simple_message/typed_message.h"
 #include "simple_message/shared_types.h"
 #include "motoman_driver/simple_message/motoman_simple_message.h"
@@ -42,7 +42,7 @@
 
 #endif
 
-#ifdef MOTOPLUS
+#ifdef SIMPLE_MESSAGE_MOTOPLUSESSAGE_MOTOPLUS
 #include "typed_message.h"                 // NOLINT(build/include)
 #include "shared_types.h"                  // NOLINT(build/include)
 #include "motoman_simple_message.h"        // NOLINT(build/include)

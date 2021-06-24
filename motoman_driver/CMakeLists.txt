@@ -36,9 +36,6 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS})
 
-add_definitions(-DLINUXSOCKETS=1)  #use linux sockets for communication
-add_definitions(-DROS=1)
-
 catkin_package(
   CATKIN_DEPENDS
     actionlib
@@ -101,6 +98,10 @@ set(CLIENT_SRC_FILES
 add_library(motoman_simple_message ${MSG_SRC_FILES})
 target_link_libraries(motoman_simple_message
   simple_message)
+target_compile_definitions(
+  motoman_simple_message
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # Industrial client library
 add_library(motoman_industrial_robot_client ${CLIENT_SRC_FILES})
@@ -108,6 +109,10 @@ target_link_libraries(motoman_industrial_robot_client
   industrial_robot_client
   industrial_utils)
 add_dependencies(motoman_industrial_robot_client ${catkin_EXPORTED_TARGETS})
+target_compile_definitions(
+  motoman_industrial_robot_client
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # Robot state node
 add_executable(motoman_robot_state
@@ -119,6 +124,10 @@ target_link_libraries(motoman_robot_state
 set_target_properties(motoman_robot_state
   PROPERTIES OUTPUT_NAME robot_state
   PREFIX "")
+target_compile_definitions(
+  motoman_robot_state
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # Motion streaming node
 add_executable(motoman_motion_streaming_interface
@@ -133,6 +142,10 @@ target_link_libraries(motoman_motion_streaming_interface
 set_target_properties(motoman_motion_streaming_interface
   PROPERTIES OUTPUT_NAME motion_streaming_interface
   PREFIX "")
+target_compile_definitions(
+  motoman_motion_streaming_interface
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # I/O relay node
 add_executable(motoman_io_relay
@@ -146,6 +159,10 @@ target_link_libraries(motoman_io_relay
 set_target_properties(motoman_io_relay
   PROPERTIES OUTPUT_NAME io_relay
   PREFIX "")
+target_compile_definitions(
+  motoman_io_relay
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 
 #----------------------------------------------------------------
@@ -155,6 +172,10 @@ add_library(motoman_simple_message_bswap ${MSG_SRC_FILES})
 set_target_properties(motoman_simple_message_bswap PROPERTIES COMPILE_DEFINITIONS "BYTE_SWAPPING")
 target_link_libraries(motoman_simple_message_bswap
   simple_message_bswap)
+target_compile_definitions(
+  motoman_simple_message_bswap
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # Industrial client library
 add_library(motoman_industrial_robot_client_bswap ${CLIENT_SRC_FILES})
@@ -163,6 +184,10 @@ target_link_libraries(motoman_industrial_robot_client_bswap
   industrial_robot_client_bswap
   industrial_utils)
 add_dependencies(motoman_industrial_robot_client_bswap ${catkin_EXPORTED_TARGETS})
+target_compile_definitions(
+  motoman_industrial_robot_client_bswap
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # Robot state node
 add_executable(motoman_robot_state_bswap
@@ -174,6 +199,10 @@ target_link_libraries(motoman_robot_state_bswap
 set_target_properties(motoman_robot_state_bswap
   PROPERTIES OUTPUT_NAME robot_state_bswap
   PREFIX "")
+target_compile_definitions(
+  motoman_robot_state_bswap
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # Motion streaming node
 add_executable(motoman_motion_streaming_interface_bswap
@@ -188,6 +217,10 @@ target_link_libraries(motoman_motion_streaming_interface_bswap
 set_target_properties(motoman_motion_streaming_interface_bswap
   PROPERTIES OUTPUT_NAME motion_streaming_interface_bswap
   PREFIX "")
+target_compile_definitions(
+  motoman_motion_streaming_interface_bswap
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 # I/O relay node
 add_executable(motoman_io_relay_bswap
@@ -201,6 +234,10 @@ target_link_libraries(motoman_io_relay_bswap
 set_target_properties(motoman_io_relay_bswap
   PROPERTIES OUTPUT_NAME io_relay_bswap
   PREFIX "")
+target_compile_definitions(
+  motoman_io_relay_bswap
+  PRIVATE
+  ${industrial_robot_client_DEFINITIONS})
 
 
 add_executable(${PROJECT_NAME}_joint_trajectory_action

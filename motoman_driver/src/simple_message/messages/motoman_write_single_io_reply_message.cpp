@@ -31,13 +31,13 @@
  * \author G.A. vd. Hoorn (TU Delft Robotics Institute)
  */
 
-#ifdef ROS
+#ifdef SIMPLE_MESSAGE_USE_ROS
 #include "motoman_driver/simple_message/messages/motoman_write_single_io_reply_message.h"
 #include "simple_message/byte_array.h"
 #include "simple_message/log_wrapper.h"
 #endif
 
-#ifdef MOTOPLUS
+#ifdef SIMPLE_MESSAGE_MOTOPLUS
 #include "motoman_write_single_io_reply_message.h"  // NOLINT(build/include)
 #include "byte_array.h"                             // NOLINT(build/include)
 #include "log_wrapper.h"                            // NOLINT(build/include)

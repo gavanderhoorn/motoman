@@ -30,14 +30,14 @@
  */
 
 #include <string>
-#ifdef ROS
+#ifdef SIMPLE_MESSAGE_USE_ROS
 #include "motoman_driver/simple_message/motoman_motion_ctrl.h"
 #include "motoman_driver/simple_message/motoman_motion_reply.h"
 #include "simple_message/shared_types.h"
 #include "simple_message/log_wrapper.h"
 #endif
 
-#ifdef MOTOPLUS
+#ifdef SIMPLE_MESSAGE_MOTOPLUS
 #include "motoman_motion_ctrl.h"   // NOLINT(build/include)
 #include "motoman_motion_reply.h"  // NOLINT(build/include)
 #include "shared_types.h"          // NOLINT(build/include)
