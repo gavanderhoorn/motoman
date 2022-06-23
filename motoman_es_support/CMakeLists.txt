@@ -1,16 +1,9 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.12)
 
 project(motoman_es_support)
 
-find_package(catkin REQUIRED)
+find_package(ament_cmake REQUIRED)
+ament_package()
 
-catkin_package()
-
-if (CATKIN_ENABLE_TESTING)
-  find_package(roslaunch REQUIRED)
-  roslaunch_add_file_check(test/roslaunch_test_es165.xml)
-  roslaunch_add_file_check(test/roslaunch_test_es200_120.xml)
-endif()
-
-install(DIRECTORY config launch meshes urdf
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY config meshes urdf
+  DESTINATION share/${PROJECT_NAME})
