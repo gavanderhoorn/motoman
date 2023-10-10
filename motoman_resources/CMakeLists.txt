@@ -5,5 +5,5 @@ project(motoman_resources)
 find_package(ament_cmake REQUIRED)
 ament_package()
 
-install(DIRECTORY urdf
+install(DIRECTORY rviz urdf
   DESTINATION share/${PROJECT_NAME})
