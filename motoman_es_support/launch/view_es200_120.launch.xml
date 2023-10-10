@@ -1,0 +1,11 @@
+<launch>
+  <let name="xacro_path" value="$(find-pkg-share motoman_es_support)/urdf/es200_120.xacro" />
+  <let name="rviz_cfg" value="$(find-pkg-share motoman_resources)/rviz/view_robot.rviz" />
+  <arg name="controller" description="Controller name (dx100, dx200) used to determine joint velocity limits" />
+
+  <node pkg="robot_state_publisher" exec="robot_state_publisher">
+    <param name="robot_description" type="str" value="$(command 'xacro $(var xacro_path) joint_velocities_file:=$(find-pkg-share motoman_es_support)/config/joint_velocities_$(var controller).yaml')" />
+  </node>
+  <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui" />
+  <node pkg="rviz2" exec="rviz2" output="screen" args="-d $(var rviz_cfg)" />
+</launch>

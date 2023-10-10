@@ -5,5 +5,5 @@ project(motoman_motopos_d500_support)
 find_package(ament_cmake REQUIRED)
 ament_package()
 
-install(DIRECTORY meshes urdf
+install(DIRECTORY launch meshes urdf
   DESTINATION share/${PROJECT_NAME})
